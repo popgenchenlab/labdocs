@@ -1,0 +1,445 @@
+---
+title: "R Workshop Part 2: Data manipulation"
+author: "Rose Driscoll"
+date: "2/22/2019"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("stringr")
+#install.packages("tibble")
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(tibble)
+
+# setwd()
+```
+
+
+# Data manipulation basics
+
+**Topics**
+
+1. The tidyverse and tidy data
+2. String manipulation with `stringr`
+3. Data manipulation with `dplyr`
+
+
+# PART 1: The Tidyverse and Tidy Data
+
+The tidyverse (https://www.tidyverse.org/) is a group of R packages that are all based on a common philosophy and grammar. `dplyr` and `ggplot2` are part of the tidyverse, as are `tidyr`, `stringr`, and `tibble` (which we will use today) and `readr`, `purrr`, and `forcats` (which we won't be using).
+
+## 1. Tidyverse syntax
+
+All tidyverse functions have the same basic syntax:
+
+`function(data, other_arguments)`
+
+Many tidyverse functions are named with a verb describing what you are doing to the data (i.e., gathering, filtering, summarizing, etc.) The first argument is always the data frame, followed by other arguments. 
+
+Sometimes, these arguments will be the names of columns in the data frame that you want the function to work with. When you refer to columns by name in a tidyverse function, you don't ever have to use `$` the way you do in base R. To refer to a column named `temperature` in a data frame named `weather`, you would do `weather$temperature` in base R. Within a tidyverse function, it's just
+
+`function(weather, temperature)`
+
+This will become more intuitive once we start using tidyverse functions. But first, let's talk about tidy data...
+
+## 2. Tidy data
+
+All tidyverse packages run on tidy data. "Tidy" data means data that is in the long form, with one column for each variable and one row for each observation. 
+
+```{r}
+# some tidy data
+data(airquality)
+head(airquality)
+
+# some untidy data
+le <- read.csv("le_mess.csv")
+head(le)
+```
+
+## 3. Putting data in tidy (long) format
+
+A lot of data that you encounter out in the world doesn't come nicely pre-tidied, so it's important to know how to tidy data for yourself. For this, use the `gather()` function from the `tidyr` package.
+
+```{r}
+# gather(data, key, value, ...)
+# All of the old column names will be gathered in a column named with the key
+# All of the old cells will be gathered into a column named with the value
+# Use - to exclude columns from gathering
+tidy_le <- gather(le, year, life_expectancy, -country)
+head(tidy_le)
+```
+
+Some base R functions do **not** work with tidy data (`prcomp()` is a great example of this) so if you are going back and forth between base `R` and (for example) `dplyr` you will also need to know how to take data out of tidy format. 
+
+```{r}
+# spread(data, key, value)
+untidied_le <- spread(tidy_le, year, life_expectancy)
+head(untidied_le)
+```
+
+## 4. Dealing with rownames
+
+Another problem you might encounter is data with rownames. Tidyverse functions don't work well with rownames - they like to have all of the data in (named) columns so that it can all be handled in the same way. The `tibble` package has a great function for converting rownames into a column...
+
+```{r}
+data("mtcars")
+head(mtcars)
+rownames(mtcars)
+
+mtcars_models <- rownames_to_column(mtcars, "model")
+head(mtcars_models)
+```
+
+## 5. Dealing with column names
+
+Because of the way tidyverse syntax works, you will frequently need to refer to columns in a data frame by name. R doesn't care what these column names are,* but it's a good idea to use column names that are meaningful and easy for you to interpret and remember. `dplyr` provides a simple function for renaming one, several, or all columns in a data frame:
+
+```{r}
+head(mtcars_models)
+mtcars_tidy <- rename(mtcars_models, cylinders = cyl, horsepower = hp, weight_1000 = wt, transmission = am, carburetors = carb)
+head(mtcars_tidy)
+```
+
+
+NOTE: R doesn't care what the column names are... unless they start with a number or have spaces in them. If column names start with a number or have spaces in them, you have to enclose them in backticks when you refer to them:
+
+```{r}
+test <- data.frame(a=c(1,2), b=c(1,2))
+colnames(test) <- c("1", "2")
+# test$1 # this throws an error
+test$`1` # this works though
+
+colnames(test) <- c("column 1", "column 2")
+#test$column 1 # this throws an error
+test$`column 1` # this works though
+
+# the backtick rule applies whether you are working in base R or dplyr.
+```
+
+In general, it's better to avoid column names like this. R tries to help you avoid it by adding an X to the start of any column name that starts with a number when you read in data with `read.csv()` or `read.table()` (it did this above with the `le` data.)
+
+
+# PART 2: String Manipulation with stringr
+
+R added Xs to all of the years in the life expectancy (`le`) data when we read it in, and these didn't go away when we converted the data to long format...
+
+```{r}
+head(tidy_le)
+```
+
+In order to get rid of the Xs, we need to manupulate strings with `stringr`.
+
+```{r}
+# extract `year` column so that we are just working with a vector of strings for the example
+year <- tidy_le$year
+head(year)
+# use str_sub to extract just the part of the string after the X
+# str_sub(string, start = 1L, end = -1L)
+year_clean <- str_sub(year, 2, 5)
+head(year_clean)
+# default start is first character and default end is last character, so this does the same thing:
+year_clean <- str_sub(year, 2)
+head(year_clean)
+```
+
+Some more `stringr` functions:
+
+```{r}
+data(fruit)
+str_detect(fruit, "berry")
+str_which(fruit, "berry")
+str_subset(fruit, "berry")
+str_split(fruit, " ")
+```
+
+You can also use regular expressions with `stringr` functions:
+
+```{r}
+str_subset(fruit, "[ap][pe][pa][lr]")
+```
+
+However, a word of caution: while `stringr` is very powerful, it may not always be the best tool for pure string manipulation work. Check the `stringr` tidyverse page (https://stringr.tidyverse.org/) and `stringr` cheatsheet to see what sorts of functionality `stringr` has to offer. Python might be a better choice for some kinds of string manipulation problems.
+
+
+# PART 3: Data manipulation with dplyr
+
+dplyr is what I would consider to be the "meat" of the tidyverse's data manipulation tools. 
+
+## 1. Single-table operations
+
+These are sometimes known as the "seven verbs of dplyr", although there are actually at least ten basic functions... 
+
+### Select
+
+`select()` allows you to select columns from a data frame, dropping columns that aren't mentioned.
+
+```{r}
+select(mtcars_tidy, model, mpg, cylinders)
+```
+
+You can also use - to drop named columns:
+
+```{r}
+select(mtcars_tidy, -qsec, -vs)
+```
+
+If you want to change the order of your columns, select can do that too!
+
+```{r}
+select(mtcars_tidy, cylinders, vs, mpg, model)
+# now model is on the far right instead of the far left
+```
+
+
+### Filter
+
+`filter()` is used to filter the rows of a data frame based on one or more conditions.
+
+```{r}
+filter(mtcars_tidy, cylinders > 6, transmission == 1)
+filter(mtcars_tidy, model == "Valiant")
+```
+
+If you want to apply more than one condition to a single variable, boolean operators can come in handy:
+
+```{r}
+filter(mtcars_tidy, mpg > 20 & mpg < 25)
+# for & simply supplying the two conditions separately does the same thing
+filter(mtcars_tidy, mpg > 20, mpg < 25)
+# but this doesn't work for any other operators
+filter(mtcars_tidy, gear == 3 | gear == 5)
+```
+
+
+### Sample_n and sample_frac
+
+If you want a random subset of the rows of a table, use `sample_n()` to pull out a set number of rows or `sample_frac()` to pull out a fraction of the rows.
+
+```{r}
+sample_n(mtcars_tidy, 5)
+sample_frac(mtcars_tidy, 0.5) # sample half of the rows
+sample_frac(mtcars_tidy) # if you don't supply a fraction, it gives you all of the rows back in random order, which can be useful
+```
+
+### Mutate and transmute
+
+`mutate()` is used to create new columns in a table by applying some sort of a function or rule. `transmute()` does the same, but drops all of the old columns and only returns the new one.
+
+```{r}
+mutate(mtcars_tidy, weight = weight_1000*1000)
+# can use 2 variables (though this isn't super meaningful for this particular dataset)
+mutate(mtcars_tidy, cyl_x_gear = cylinders*gear)
+# can combine this with ifelse()
+mutate(mtcars_tidy, engine = ifelse(vs==0, "V", "S"))
+```
+
+```{r}
+transmute(mtcars_tidy, weight = weight_1000*1000)
+```
+
+You can create more than one column at at time, and even use columns you've just created to create even more columns in the same command:
+
+```{r}
+mutate(mtcars_tidy, weight = weight_1000*1000, engine = ifelse(vs==0, "V", "S"))
+
+mutate(mtcars_tidy, engine = ifelse(vs==0, "V", "S"), engine_config = paste(engine, cylinders, sep = ""))
+```
+
+### Arrange
+
+`arrange()` is used to order the rows in a data frame according to the values of one (or more) variables. Use `desc()` to get values in descending order (highest to lowest or Z to A).
+
+```{r}
+arrange(mtcars_tidy, model)
+arrange(mtcars_tidy, cylinders, desc(mpg))
+```
+
+### Distinct
+
+`distinct()` returns all unique rows of a data frame, dropping duplicates.
+
+```{r}
+redundant_data <- data.frame(a=c(1,1,1,2,2,2), b=c(1,1,2,3,3,3))
+head(redundant_data)
+distinct(redundant_data)
+```
+
+By itself, `distinct()` isn't all that useful.
+
+### Summarize
+
+`summarize()` applies one or more summary functions to a table (`min()`, `max()`, `mean()`, etc.)
+
+```{r}
+summarize(mtcars_tidy, mean_mpg = mean(mpg), max_horsepower = max(horsepower))
+```
+
+By itself, `summarize()` can be useful but isn't all that exciting.
+
+### Group_by
+
+`group_by()` invisibly groups a table by one or more variables; if you look at the output, the rows are in the exact same order, but R knows that they are now in groups.
+
+```{r}
+group_by(mtcars_tidy, vs, transmission)
+# compare to arrange()
+arrange(mtcars_tidy, vs, transmission)
+```
+
+`group_by()` is completely useless on its own, which is why we need to talk about piping...
+
+## 2. The pipe %>%
+
+The pipe (%>%) is an operator that performs a very simple action: it takes the output of the preceding function and inserts it as the first argument of the following function.
+
+```{r}
+filter(mtcars_tidy, cylinders == 8) %>%
+  select(model, mpg, cylinders) # no need to supply the data frame as it is piped from the previous line
+```
+
+Since all of the tidyverse functions have the data frame as their first argument, it's easy to combine them with the pipe. You can link together as many commands as you like and run them all together, without creating any intermediate variables or wrapping functions around each other (`filter(select(mutate(...)))` would get old real fast...)
+
+```{r}
+select(mtcars_tidy, -disp, -drat, -qsec, -carburetors) %>%
+  mutate(engine = ifelse(vs==0, "V", "S"), weight = weight_1000*1000) %>%
+  filter(engine == "V", horsepower > 200) %>%
+  arrange(desc(mpg))
+```
+
+`group_by()` becomes an incredibly powerful tool when you pipe the output to `summarize()` or `distinct()` - instead of being applied to the whole table, these functions are instead applied to each group separately.
+
+```{r}
+group_by(mtcars_tidy, cylinders) %>%
+  summarize(mean_mpg = mean(mpg))
+# gives you the mean for each group
+
+group_by(mtcars_tidy, cylinders, vs) %>%
+  distinct(transmission)
+# gives you all the unique combinations of cylinder number, engine configuration, and transmission type
+```
+
+And the pipe isn't just for use with `dplyr` functions - it's easy to use with anything in the tidyverse. Here, I'm piping the output of `gather()` into a bunch of `dplyr` functions, but this will become particularly useful when combined with ggplot.
+
+```{r}
+gather(le, raw_year, life_expectancy, -country) %>%
+  mutate(year = as.numeric(str_sub(raw_year, 2)), country = as.character(country)) %>%
+  select(country, year, life_expectancy) %>%
+  filter(year < 2000) -> le_50s_thru_90s
+sample_n(le_50s_thru_90s, 15)
+# you can use the assignment operator at the start or at the end
+# I find putting it at the end more readable, but here's an example of putting it at the start:
+le_50s_thru_90s <- gather(le, raw_year, life_expectancy, -country) %>%
+  mutate(year = as.numeric(str_sub(raw_year, 2))) %>%
+  select(country, year, life_expectancy) %>%
+  filter(year < 2000)
+```
+
+You can also use the pipe with functions from base R and other packages, even ones that don't have data as the first argument. Just use . to tell R where to put the data it's piping.
+
+```{r}
+data.frame(a=c(1,2), b=c(1,2)) %>%
+  list("a", .)
+```
+
+
+## 3. Working with multiple tables
+
+In addition to its single-table verbs, `dplyr()` also has a set of functions that are used for combining tables in different ways. These come in a few different types: 
+
+1. Functions that combine columns
+2. Functions that combine or otherwise work with rows
+
+### Functions that combine columns
+
+`dplyr` supplies four row-aware functions that combine columns from two tables: `left_join()`, `right_join()`, `inner_join()`, and `full_join()`. The four functions differ in how they handle rows that do not match between tables. Run the following code to see the differences:
+
+```{r}
+mice_color <- data.frame(name = c("Mouse 1", "Mouse 2", "Mouse 3", "Mouse 4"), color = c("black", "brown", "white", "brown"), stringsAsFactors = FALSE)
+mice_weight <- data.frame(name = c("Mouse 1", "Mouse 2", "Mouse 3", "Mouse 5"), weight = c(20, 25, 18, 22), stringsAsFactors = FALSE)
+
+# exception to dplyr's "refer to columns by name" rule: when you tell any of the following functions which column to join by, you have to put the column name in quotation marks.
+
+# left_join
+left_join(mice_color, mice_weight, by = "name")
+# right_join
+right_join(mice_color, mice_weight, by = "name")
+# inner_join
+inner_join(mice_color, mice_weight, by = "name")
+# full_join
+full_join(mice_color, mice_weight, by = "name")
+
+# these also work if your tables are different lengths
+mini_mice <- data.frame(name = c("Mouse 3", "Mouse 5"), weight = c(18, 22), stringsAsFactors = FALSE)
+left_join(mice_color, mini_mice, by = "name")
+```
+
+`dplyr` also provides a non-row-aware function that combines columns from two tables, `bind_cols()`. Use `bind_cols()` with caution, as it will match rows solely by position - if your two tables don't have the same row order, `bind_cols()` can get you in trouble!
+
+```{r}
+mice_age <- data.frame(name = c("Mouse 1", "Mouse 2", "Mouse 3", "Mouse 4"), age = c(5, 6, 4, 5), stringsAsFactors = FALSE)
+
+# bind_cols
+bind_cols(mice_color, mice_age)
+# I'm keeping both `name` columns in order to show that we got the rows right
+
+# here's an example that gets the rows wrong
+bind_cols(mice_color, mice_weight)
+
+# bind_cols fails if your tables aren't the exact same length
+#filter(mice_color, name != "Mouse 4") %>%
+#  bind_cols(mice_weight)
+```
+
+Usually, one of the row-aware functions will be a better choice than `bind_cols()`.
+
+### Functions that combine or otherwise work with rows
+
+`dplyr` functions that combine rows from two tables come in three broad categories. First, there are functions that filter the rows of one table based on the rows of another table: `semi_join()` and `anti_join()`. These can be helpful for figuring out what rows will be kept/dropped if you use `left_join()` or `right_join()` on the tables.
+
+```{r}
+mice_color2 <- data.frame(name = c("Mouse 1", "Mouse 2", "Mouse 3", "Mouse 5"), color = c("black", "brown", "white", "white"), stringsAsFactors = FALSE)
+
+# semi_join
+semi_join(mice_color, mice_color2, by = "name")
+# anti_join
+anti_join(mice_color, mice_color2, by = "name")
+
+# these also work on tables that have different sets of columns
+semi_join(mice_color, mice_weight, by = "name")
+
+# row-joining functions don't care if the tables have different numbers of rows
+```
+
+Second, there are functions that combine sets of rows from two tables based on whether they appear in one or both tables: `intersect()`, `union()`, and `setdiff()`.
+
+```{r}
+# intersect
+intersect(mice_color, mice_color2)
+# union
+union(mice_color, mice_color2)
+# setdiff
+setdiff(mice_color, mice_color2)
+```
+
+`intersect()` is similar to `semi_join()`, and `setdiff()` is similar to `anti_join()`. However, these functions only work on tables that have all the same columns.
+
+```{r}
+# this throws an error:
+#intersect(mice_color, mice_weight)
+```
+
+Lastly, there is a non-column-aware option, `bind_rows()`. Just like `bind_cols()` matches rows by position, `bind_rows()` matches columns solely by position, so you need to be sure that the columns in your tables are in the exact same order.
+
+```{r}
+more_mice <- data.frame(name = c("Mouse 5", "Mouse 6", "Mouse 7", "Mouse 8"), color = c("white", "brown", "black", "black"), stringsAsFactors = FALSE)
+
+# bind_rows
+bind_rows(mice_color, more_mice)
+```

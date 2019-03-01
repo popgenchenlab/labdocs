@@ -1,0 +1,538 @@
+---
+title: 'R Workshop Part 1: Base R'
+author: "Tiffany Dias"
+date: "2/22/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = TRUE, tidy.opts=list(width.cutoff=60))
+```
+
+
+# R Basics
+
+**Topics**
+
+0. Getting Started and How to Get Help
+1. R Objects and Data Types
+2. Math
+3. Basic Statistical Analysis
+4. Loops and Functions
+5. Data Manipulation
+
+
+# PART 0: Getting Started and How to Get Help
+
+What is RMarkdown? It is a way to include both formatted text and R code chunks in a single document. You can knit the output to a HTML, PDF, or Word file. For PDF files, you will need to install LaTeX, which can be found here: https://www.latex-project.org/get/
+
+You can use the "Help" tab on the bottom right panel in RStudio. You can also use "?" before the function name, such as ?View
+
+```{r}
+?View
+```
+
+You can also find help for a particular package by using: help(package = 'packagename').
+
+```{r}
+help(package = 'dplyr')
+help(package = 'ggplot2')
+```
+
+Sometimes, googling can be more useful than the official R documentation. Stackexchange, stackoverflow, and r-bloggers are all great resources.
+
+## 1. The Working Directory
+
+Your working directory is where your output and input files can be found. If you have an error reading in a file or finding your output files, check to see if the file is in your working directory. 
+
+You can check where your working directory is and set it using the following commands:
+
+```{r}
+getwd() #get the name of your working directory
+#setwd('C://file/path/goes/here')
+```
+
+## 2. Installing and Loading Packages
+
+You can install and load a package by using the following commands.
+
+```{r}
+#install
+#install.packages('dplyr')
+#install.packages('ggplot2')
+
+#load packages
+library(dplyr)
+library(ggplot2)
+```
+
+Packages do not need to be reinstalled each time you use them, BUT they do need to be loaded into your current session before you can use them.
+
+## 3. Reading, Writing, and Viewing Data
+
+If you want to import data from a website or file and assign it to a variable, you can use the following code (uncomment and insert the filename/website url in quotes):
+
+```{r}
+#dataset <- read.csv("put your filename/website url")
+#can also use "read.table()" to read in a file in table format and create a data frame
+#use stringsAsFactors = FALSE for read.table if you want the data imported as strings instead of factors
+```
+
+You can also assign row and column names to the dataset.
+
+```{r}
+somedata <- c(22, 27, 13, 18, 15, 16) #dataset
+somedata
+
+dim(somedata)=c(3,2) #make into a table with 2 rows and 2 columns
+colnames(somedata)<-c("C1","C2") #set column names
+rownames(somedata)<-c("R1","R2", "R3") #set row names
+somedata
+somedata <- t(somedata)
+somedata
+
+```
+
+To practice manipulating data, you can also use one of the built-in datasets. To view all available datasets you can use "data()"
+
+```{r}
+#data() #use to view built-in datasest
+data(airquality) #load in airquality dataset
+head(airquality) #see the first few data entries of the air quality dataset
+nrow(airquality) #output is number of rows in the dataset
+ncol(airquality) #output is number of columns in the dataset
+View(airquality) #view data
+```
+
+You can write data frames to a file using "write.table()"
+
+```{r}
+write.table(somedata, file="somedata.txt", quote=F) #space delimited; can use `sep=` for a different delimiter
+#you can also use save() for writing tables
+
+```
+
+If successful, you should see the somedata.txt file appear in your working directory.
+
+
+# PART 1: R Objects and Data Types
+
+## 1. Vectors
+
+Vectors can be created using the following code:
+```{r}
+v1 <- 1 #for one element
+v2 <- c(5, 6, 7, 8, 9, 10) #use c() for more than one element
+
+v1
+v2
+
+v2[2] #access the second element in v2
+v2[-2] #access all elements except the 2nd in v2
+v2[2:4] #access 2nd-4th elements in v2
+v2[c(2, 4)] #access the 2nd and 4th elements in v2
+
+```
+
+To check the class of an object use "class()"
+
+```{r}
+v <- c(1, 10, 2)
+class(v)
+
+l <- c(TRUE, FALSE, FALSE)
+class(l)
+
+b <- c('red', 'orange', 'yellow')
+class(b)
+```
+
+You can also sort data using "sort()"
+
+```{r}
+x <- c(5, 2, 9, 3)
+x
+x <- sort(x)
+x
+```
+
+
+## 2. Lists
+
+Lists can contain many different types of elements, including vectors, functions, and other lists.
+
+```{r}
+lst1 <- list("character", 35.3, list("this", "is", "a", "list"))
+
+lst1 
+
+
+#accessing info in lists
+lst1[1] #pulls out the first element of the list as a 1 item long list
+lst1[[1]] #pulls out the first element of the list as the original data type (in this case, character)
+lst1[[3]][[1]] #access the first element of the 3rd element of the list
+lst1[[3]] #pulls out the 3rd element of the list as the original data type (in this case, list)
+```
+
+## 3. Matrices
+
+Matrices can be created in a similar way as vectors:
+
+```{r}
+rownam <- c("one", "two", "three")
+colnam <- c("one", "two", "three")
+mat1 <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9), nrow = 3, ncol = 3, byrow = TRUE, dimnames=list(rownam, colnam))
+mat2 <- matrix(1:9, nrow=3, ncol=3, byrow=TRUE)
+
+mat1
+mat2
+
+mat1[1,] #row 1
+mat1[,1] #column 1
+mat1[1,1] #row 1, column 1 cell
+
+t(mat1) #transpose the matrix
+```
+
+Matrices must contain all one data type. For example, you can have an all-integer matrix or an all-character matrix, but you can't have a matrix where some elements are integers and other elements are characters (for that you need a data frame.)
+
+## 4. Arrays
+
+Arrays are like matrices, but don't have to be 2-dimensional.
+
+```{r}
+a <- array(c('red', 'orange', 'yellow'), c(1, 2, 3)) #creates 3 1x2 matrices
+a
+```
+
+
+## 5. Factors
+
+Factors are a type of categorical data that store vectors with the values of its elements as labels.
+
+```{r}
+colors <- c('red', 'yellow', 'blue', 'blue', 'red', 'green', 'blue')
+factorofcolors <- factor(colors) #create a factor from vector; you can look at the environment panel to see the different levels (underlying numeric value)
+
+colors
+factorofcolors
+nlevels(factorofcolors) #number of levels
+summary(factorofcolors) #print summary
+
+```
+
+
+## 6. Data Frames
+
+Data frames are like tables. They are similar to matrices, but unlike matrices, each column can hold a different type of data. 
+As vectors are to lists, matrices are to data frames.
+
+```{r}
+mice <- data.frame(color = c("black", "brown", "white", "brown"), weight = c(20, 25, 18, 27), age = c(5, 6, 4, 5)) #can also use stringsAsFactors = FALSE to have color as a character instead of a factor
+
+mice
+
+mousenames <- c("Mouse 1", "Mouse 2", "Mouse 3", "Mouse 4")
+rownames(mice) <- mousenames #rename rows
+colnames(mice)[colnames(mice)=="weight"] <- "weight_grams"
+names(mice)[3] <- "age_months"
+mice
+
+newrow <- list("white", 22, 4) #data for a new row
+mice <- rbind(mice, newrow) #add a new row; you can use cbind() instead of rbind() to add a new column
+mousenames <- c(mousenames, "Mouse 5")
+attr(mice, "row.names") <- mousenames #add row name to data frame; another way to rename rows
+mice
+
+
+mice <- mice[-c(3),] #remove row 3
+mice
+```
+
+If you read in data using `read.csv()` or `read.table()`, it will be stored in a data frame.
+
+You can access elements of the data frame in  various ways:
+
+
+```{r}
+mice[1:2] #columns 1-2 of the mice dataset
+mice[c("color", "age_months")] #access columns based on variable name
+mice$color #access column based on variable name
+```
+
+When in doubt about what kind of data you're manipulating, you can use the following ways to get more info:
+
+```{r}
+str(mice) #structure of data frame
+class(mice$color) #class of object
+length(mice) #length
+attributes(mice) #attributes of the dataset
+sapply(mice, class) #show the class of each column in the mice dataset
+
+is.numeric(mice$weight)
+class(mice$color)
+is.character(mice$color)
+is.vector(mice$color)
+is.matrix(mice)
+is.data.frame(mice)
+```
+
+
+You can also convert between data types.
+
+```{r}
+x <- c(1, 2, 3, 4, 5)
+y <- c(6, 7, 8, 9, 10)
+mat1 <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9), nrow = 3, ncol = 3, byrow = TRUE)
+
+x
+y
+z <- c(x, y) #combine vectors x and y into one long vector
+z
+
+mat1
+z <- as.vector(mat1) #converts matrix to a long vector (adds by column)
+z
+z <- as.vector(t(mat1)) #converts matrix to a long vector (adds by row)
+z
+
+mat2 <- cbind(x, y) #convert vectors into matrix (x and y are columns)
+mat2
+mat2 <- rbind(x, y) #convert vectors into matrix (x and y are rows)
+mat2
+
+df <- data.frame(x, y) #convert vectors to data.frame
+df
+
+df2 <- as.data.frame(mat2) #convert matrix into data.frame
+df2
+
+mat2 <- as.matrix(df2) #convert data.frame into matrix
+mat2
+
+```
+
+
+# PART 2: Math
+
+## 1. Operation on Vectors
+
+If you add/subtract two vectors of equal sizes together, the operation is carried out for the 2 elements in the same position of each vector. For example:
+
+```{r}
+x <- c(1, 4, 7)
+y <- c(2, 3, 8)
+
+x+y
+```
+
+When there is a difference in the lengths of the vectors, the elements in the shorter vector are cycled through to match the length of the longer vector.
+
+```{r}
+x <- c(2, 4, 6, 8, 10)
+y <- c(1, 3, 5)
+
+x+y
+```
+
+```{r}
+x <- c(2, 4, 6, 8, 10)
+y <- c(1, 3, 5)
+
+x*y
+```
+
+
+```{r}
+mat1 <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9), nrow = 3, ncol = 3, byrow = TRUE, dimnames=list(rownam, colnam))
+mat2 <- matrix(1:9, nrow=3, ncol=3, byrow=TRUE)
+
+mat1*mat2 #element by element
+
+mat2 <- matrix(1:3, nrow=3, ncol=1, byrow=TRUE)
+mat1
+mat2
+mat1%*%mat2 #matrix multiplication - number of rows of the 2nd matrix needs to equal the number of columns of the first matrix
+#mat2%*%mat1 #error - non-conformable
+
+```
+
+
+
+## 2. Basic Statistical Functions
+
+Here are some basic statistical functions in R:
+
+```{r}
+mean(airquality$Temp) #mean
+median(airquality$Temp) #median
+range(airquality$Temp) #range (highest and lowest values)
+min(airquality$Temp) #minimum
+max(airquality$Temp) #maximum
+sd(airquality$Temp) #standard deviation
+var(airquality$Temp) #variance
+quantile(airquality$Temp, 0.5) #quantile, where 0.5 = 50%
+summary(airquality$Temp) #summary: min, 1st quartile, median, mean, 3rd quartile, and max
+
+```
+
+
+
+# PART 3: Basic Statistical Analysis
+
+## 1. Statistical Tests
+
+```{r}
+#Z-TEST
+xbar <- 15.8
+n <- 40
+sigma <- 0.4
+mu <- 16
+pnorm(xbar, mu, sigma/sqrt(n)) #1-sided z-test (lower); for upper, subtract from 1
+2*pnorm(-abs((xbar-mu)/(sigma/sqrt(n)))) #2-sided z-test
+
+#PAIRED/UNPAIRED T-TEST
+before <-c(200.1, 190.9, 192.7, 213, 241.4, 196.9, 172.2, 185.5, 205.2, 193.7)
+after <-c(392.9, 393.2, 345.1, 393, 434, 427.9, 422, 383.9, 392.3, 352.2)
+t.test(x=before, y=after, alternative="less", paired=T) #paired t-test; for unpaired set "paired" equal to F
+
+#CHI-SQUARED TEST
+categories <- c(100, 120, 140, 170, 180, 300)
+nullprob <- c(0.1, 0.2, 0.1, 0.2, 0.2, 0.2)
+chisq.test(categories, p=nullprob) #goodness-of-fit
+observed <- matrix(c(10, 20, 30, 20, 25, 31, 35, 40), nrow=4)
+chisq.test(observed) #independence
+
+#WILCOXON TESTS
+wilcox.test(before, after, paired=T) #signed rank; for rank sum set "paired" equal to F
+
+#ANOVA
+model1 = aov(airquality$Temp~airquality$Month)
+summary(model1)
+anova(model1)
+```
+
+## 2. Linear Regression
+
+```{r}
+lm1 <- lm(airquality$Temp ~ airquality$Month) #lm(y~x)
+summary(lm1)
+anova(lm1)
+
+cor(airquality$Temp, airquality$Wind)
+```
+
+## 3. Identifying Outliers
+
+```{r}
+
+q1 <- quantile(airquality$Wind, 0.25)
+q3 <- quantile(airquality$Wind, 0.75)
+
+lowerfence <- q1 - 1.5*(q3-q1)
+upperfence <- q3 + 1.5*(q3-q1)
+
+upperoutliers <- airquality[airquality$Wind >= upperfence,]
+loweroutliers <- airquality[airquality$Wind <= lowerfence,]
+
+cat("Upper Outliers: ", paste0(upperoutliers$Wind, collapse=","), fill=TRUE)
+cat("Lower Outliers: ", paste0(loweroutliers$Wind, collapse=","))
+
+```
+
+
+# PART 4: Loops and Functions
+
+## 1. If/Else
+
+```{r}
+i <- c(1, 2, 3, 4, 5)
+
+if(3 %in% i) {
+  print('yes')
+} else {
+  print('no')
+}
+```
+
+
+## 2. For
+
+```{r}
+for (i in 1:4) {
+  j <- i + 10
+  print(j)
+}
+```
+
+## 3. While
+
+```{r}
+i <- 3
+while(i < 5) {
+  print(i)
+  i <- i+1
+}
+```
+
+## 4. Functions
+
+```{r}
+multiply <- function(x, y) {
+  product <- x*y
+  return(product)
+}
+
+multiply(3, 7)
+```
+
+
+# PART 5: Data Manipulation
+
+When you have a data frame, you can access a column using "$". You can also access data as a vector using brackets
+
+```{r}
+aqtemp <- airquality$Temp #get data in the "Temp" column in the "airquality" dataset
+aqtemp
+
+aqdata13 <- airquality[1,3] #access data in row 1 column 3
+aqdata13
+
+```
+
+You can also save a subset of data by using "subset()" or brackets
+
+```{r}
+aqsub <- subset(airquality, Temp > 65) #makes a subset of air quality data for rows where the temperature is higher than 65
+View(aqsub)
+
+aqsub2 <- airquality$Wind[airquality$Temp > 65] #wind data for when the temperature is above 65
+View(aqsub2)
+
+aqsub3 <- airquality[airquality$Temp > 65,c('Wind','Temp')] #wind and temp data for when the temperature is above 65
+View(aqsub3)
+```
+
+You can also split data into categories based on values. This can be useful for finding correlations and distinguishing particular points in plots.
+
+```{r}
+aqtemp1 <- cut(airquality$Temp, breaks = c(0, 50, 60, 70, 80, max(airquality$Temp)), labels = c("Below 50", "50s", "60s", "70s", "Above 80"))
+
+aqtemp2 <- ifelse(airquality$Temp > 75, "red", "blue") 
+
+par(mfrow=c(1,3))
+plot(airquality$Month, airquality$Temp, col = aqtemp1)
+plot(airquality$Month, airquality$Wind, col = aqtemp1)
+plot(airquality$Month, airquality$Wind, col = aqtemp2)
+```
+
+"tapply()" is also a useful function for analyzing data
+
+```{r}
+tapply(airquality$Temp, airquality$Month, mean) #mean temperature per month
+tapply(airquality$Temp, airquality$Month, median) #median temperature per month
+tapply(airquality$Temp, airquality$Month, var) #variance in temperature per month
+```
+
+The apply() family is useful for analyzing data. `apply()` is used to operate on arrays. `lapply()` applies a function to every element of a list and obtains a list as a result. It can be used for other objects like dataframes and lists (unlike `apply()`). `sapply()` is similar to `lapply()`, but simplifies the output into a simplified data structure (like a vector). `mapply()` applies a function to multiple vector arguments. `tapply()` applies a function to each non-empty group of values. A better explanation of what the apply() family is and what it is used for can be found here: https://ademos.people.uic.edu/Chapter4.html
+

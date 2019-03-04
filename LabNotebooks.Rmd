@@ -122,7 +122,7 @@ If you are uncomfortable using the command line, you can download and use a GitH
 
 # Some more advice
 
-* Avoid manually editing files. Instead, try to do all data manipulation using scripts. 
+* Avoid manually editing files. Instead, try to do all data manipulation using awk/sed or scripts. 
 
 * Use scripts to automate longer pipelines.
 

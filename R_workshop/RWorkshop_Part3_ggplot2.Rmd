@@ -1,7 +1,7 @@
 ---
 title: "R Workshop Part 3: ggplot2"
 author: "Rose Driscoll"
-date: "3/22/2019"
+date: "4/4/2019"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -22,6 +22,7 @@ library(tidyverse)
 1. The grammar of graphics (the philosophy behind ggplot2)
 2. Aesthetics, mapping, geoms, etc (the nuts and bolts of ggplot2)
 3. Making your plots pretty and readable
+4. Exporting publication-ready, multipart figures
 
 # PART 1: The grammar of graphics
 
@@ -365,7 +366,7 @@ ggplot(data = mtcars) +
 
 # PART 3: Making your plots pretty and readable
 
-`ggplot2`'s grammar of graphics makes it possible for you to create any sort of plot you can imagine... but once you have all of the elements on the page, there are still lots of things you can tweak to make your plots *pretty*. We'll go over a couple major categories: choosing colors, controlling axis labels/ranges/breakpoints, annotating a plot with text/shapes, and dealing with legends.
+`ggplot2`'s grammar of graphics makes it possible for you to create any sort of plot you can imagine... but once you have all of the elements on the page, there are still lots of things you can tweak to make your plots *pretty*. We'll go over a couple major categories: choosing colors, controlling axis labels/ranges/breakpoints, annotating a plot with text/shapes, dealing with legends, and using themes to control the "style" of the plot.
 
 ## 1. Color
 
@@ -556,12 +557,165 @@ ggplot(data = iris) +
   theme(legend.position = "none")
 ```
 
+## 5. Themes
+
+`ggplot2` provides a number of "themes" which can be used to control the overall style of a plot. Try running the following to see what these different built-in themes look like. (For even more themes, take a look at the `ggthemes` package!)
+
+```{r}
+# theme_gray() is the default ggplot2 theme
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme_gray()
+
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme_classic()
+
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme_bw()
+
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme_dark()
+
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme_void()
+```
+
+You can also manually control pretty much every aspect of a plot's appearance and style using the `theme()` function. We previously used `theme()` to rotate axis text labels and to control the position of the legend. To see all of the other arguments this function can take, try using `?theme` to pull up the documentation:
+
+```{r}
+?theme
+```
+
+For many `theme()` arguments, you will need to use a helper `element_` function: `element_rect()`, `element_line()`, `element_text()`, etc. To get rid of a particular element, use `element_blank()`. 
+
+```{r}
+?element_rect
+?element_line
+?element_text
+
+# Here are some examples that just tweak one thing at a time so you can see what each bit is doing:
+
+# panel background
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme(panel.background = element_rect(fill = "white"))
+
+# axis lines (example with x, y is analogous)
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme(axis.line.x = element_line(color = "black", size = 0.3))
+
+# size of axis labels (example with x, y is analogous)
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme(axis.title.x = element_text(size=20))
+
+# gridlines (example with minor gridlines, major is analogous)
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme(panel.grid.minor = element_blank())
+
+# Putting it all together:
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme(panel.background = element_rect(fill = "white"), axis.line = element_line(color = "black", size = 0.3), axis.title = element_text(size=12), panel.grid = element_blank())
+```
+
+When Nancy makes a set of figures that all go together, she often wants to apply the same theme to all of the plots. The way that she does this is by saving the theme to a variable, then adding the variable to each plot she makes. 
+
+```{r}
+plottheme <- theme(panel.background = element_rect(fill = "white"), axis.line = element_line(color = "black", size = 0.3), axis.title = element_text(size=12), panel.grid = element_blank())
+
+ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  plottheme
+
+ggplot(data = iris) +
+  geom_histogram(mapping = aes(x = Sepal.Length, fill = Species), binwidth = 0.1) +
+  plottheme
+```
+
+# PART 4: Exporting publication-ready, multipart figures
+
+When you're ready to make figures for a manuscript, you'll often want to combine several plots together into a multipart figure. The `cowplot` package is great for this.
+
+```{r}
+#install.packages("cowplot")
+library(cowplot)
+```
+
+Just as a sidenote - `cowplot` has its own `ggplot2` theme, `theme_cowplot`, which it automatically applies to all plots when the `cowplot` package is loaded. However, you can still use `theme()` to override this default and manually control all of the stylistic features of your plots.
+
+Now, let's use the `plot_grid` function from the `cowplot` package to make a simple multipart figure.
+
+```{r}
+# first save each of the plots you want to include
+a <- ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species))
+b <- ggplot(data = iris) +
+  geom_histogram(mapping = aes(x = Sepal.Length, fill = Species), binwidth = 0.1)
+
+# then call plot_grid to combine the plots
+plot_grid(a, b, ncol = 2)
+# plot_grid can arrange plots in columns, rows, or both.
+```
+
+For a manuscript figure, you might want to label the parts of your figure (for example, A and B).
+
+```{r}
+plot_grid(a, b, ncol = 2, labels = c("A", "B"))
+```
+
+This looks a bit silly; since the same color scheme is used in both plots, we don't really need both legends! We can remove the legend from one plot using `theme(legend.position = "none")`, as we saw above.
+
+```{r}
+a <- ggplot(data = iris) +
+  geom_point(mapping = aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  theme(legend.position = "none")
+
+plot_grid(a, b, ncol = 2, labels = c("A", "B"))
+```
+
+This is great, except that now the first plot looks way wider than the second one because it doesn't have a legend taking up space. Fortunately, we can use `rel_widths` (or, if the plots are arranged in columns, `rel_heights`) to allow more space for the second plot:
+
+```{r}
+plot_grid(a, b, ncol = 2, labels = c("A", "B"), rel_widths = c(1, 1.65))
+```
+
+When you're satisfied with your plot, export it using `ggsave()`, `cowplot`'s `save_plot()` function, or `pdf()`. Be aware that `ggsave()` and `save_plot()` only work on ggplots - if you have a mix of base R and `ggplot2` graphics, it might be better to use `pdf()`. `pdf()` will always create PDF files, while `ggsave()` and `save_plot()` will guess the file type based on what extension you give the filename.
+
+```{r}
+# ggsave defaults to saving the last plot you made with the dimensions of your current plotting window
+ggsave("ggsave_test.pdf")
+
+# for save_plot(), need to save the multipart plot to a variable first
+ab <- plot_grid(a, b, ncol = 2, labels = c("A", "B"), rel_widths = c(1, 1.65))
+# save_plot also doesn't have as useful of defaults
+save_plot("save_plot_test.pdf", ab, base_aspect_ratio = 2)
+
+# pdf() method is a little more involved...
+# first open a quartz window
+quartz(width = 8, height = 4, dpi = 300)
+# call pdf() and tell it what to name the file and the dimensions
+pdf("pdf_test.pdf", width = 8, height = 4)
+# run the plotting command
+plot_grid(a, b, ncol = 2, labels = c("A", "B"), rel_widths = c(1, 1.65))
+# dev.off() to terminate the graphical device
+dev.off()
+```
+
 
 # Resources
 
 `ggplot2` function reference page: https://ggplot2.tidyverse.org/reference/
 
 Chapters 3 and 28 of the book *R for Data Science* (Wickham and Grolemund 2017), which give tons more examples of how to use `ggplot2`: https://r4ds.had.co.nz/data-visualisation.html and https://r4ds.had.co.nz/graphics-for-communication.html
+
+For more information on the `cowplot` package (scroll all the way to the bottom for some *extremely* silly-looking plots): https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html
 
 # References
 
